@@ -1,0 +1,502 @@
+---
+title: "Species Diversity and Distributions"
+author: "Your name here"
+format:
+  html:
+    number-sections: true
+    toc: true
+editor: visual
+bibliography: references.bib
+# https://quarto.org/docs/computations/execution-options.html#output-options
+execute:
+  # show code chunk output
+  include: true
+  # Show the code in the output
+  echo: true
+  # Show messages
+  message: false
+  # Show warnings
+  warning: true
+  # Cache code results
+  cache: false
+---
+
+# Instructions
+
+## English
+
+First choose your language and delete the section of the document in the other language.
+
+Answer the questions precisely but briefly: the questions are detailed to guide you so there are many of them.
+Don't waste your time repeating the course: you have all documents with you, copying their content is not valuable.
+To answer factual questions, you don't need to make sentences: e.g., just write "4." to answer the question "how much are 2 + 2?".
+
+Before you begin:
+
+1.  Type your name in the header of the document, in the author field.
+2.  Run the following in the terminal (answer *No* if a message box asks you if you want to close some files):
+
+`quarto publish gh-pages index.qmd`
+
+During your work: render the document regularly (at the end of each question, for example) so that problems do not pile up.
+
+At the end of the exam: save the file, make a commit and push the project to GitHub.
+Do not modify the project after the exam has finished.
+
+## Français
+
+Commencez par choisir votre langue et supprimez la partie du document rédigée dans l'autre langue.
+
+Répondez aux questions de manière précise mais concise : les questions sont détaillées pour vous guider, c'est pourquoi elles sont nombreuses.
+Ne perdez pas votre temps à répéter le cours : vous disposez de tous les documents, il est inutile d'en recopier le contenu.
+Pour répondre aux questions factuelles, vous n'avez pas besoin de rédiger des phrases : par exemple, écrivez simplement "4." pour répondre à la question "Combien font 2 + 2 ?".
+
+Avant de commencer:
+
+1.  Tapez votre nom dans l'entête du document, dans le champ "author"
+2.  Exécutez dans le terminal:
+
+`quarto publish gh-pages index.qmd`
+
+Pendant votre travail: rendez le document régulièrement (à la fin de chaque question par exemple) pour ne pas laisser les problèmes s'accumuler.
+
+A la fin de l'examen: enregistrez le fichier, faites un commit et poussez le projet sur GitHub.
+Ne modifiez pas le projet après la fin de l'examen.
+
+# English
+
+## Estimating the number of species
+
+*You have three inventories of 10-hectare areas of forest (approximately 5,000 trees):*
+
+- *A: 100 species, including 20 singletons (*$S_1$*), 10 doubletons (*$S_2$*) and 3 tripletons (*$S_3$*),*
+- *B: 80 species, including 30 singletons, 20 doubletons and 5 tripletons,*
+- *C: 150 species, including 110 singletons, 30 doubletons and 10 tripletons.*
+
+*Reminder of the estimator formulas, using the notation from the course:*
+
+- $S_{J1} = S_{>0} + S_1$
+- $S_{J2} = S_{>0} + 2 S_1 - S_2$
+- $S_{J3} = S_{>0} + 3 S_1 - 3 S_2 + S_3$
+
+> Quickly estimate the asymptotic richness of the forest using the jackknife estimators and the rules of @Brose2003.
+
+## Phylogenetic diversity
+
+*The following function creates a phylogenetic tree with 3 species. The parameter `h` sets the height at which species A and B diverge.*
+
+```{r}
+tree_3sp <- function(h) {
+  NewickABC <- paste0("(C:1,(A:", 1 - h, ",B:", 1 - h, "):", h, ");")
+  phyloABC <- ape::read.tree(text = NewickABC)
+  plot(phyloABC, direction = "downwards", srt = 90)
+  axis(2)
+}
+# Create a tree
+tree_3sp(0.5)
+```
+
+> What is the order-0 phylogenetic diversity (Faith's PD) of a community containing the three species, whose phylogenetic tree is shown in the figure?
+
+> What is the possible range of values for `h`?
+
+> What effect does `h` have on the value of PD?
+
+> Express the value of PD in terms of `h`.
+
+> What is the richness (taxonomic, not phylogenetic) of the community?
+> Explain how $h$ allows us to take into account the closeness between species B and A.
+
+> If botanists disagree on whether species B and A are synonymous and a phylogeny shows that their distance $h$ is small, suggest a method to help them reach agreement.
+
+## Lognormal distribution
+
+*We draw two random distributions from a lognormal distribution. Their size and species richness are identical; only the standard deviation of the distribution varies.*
+
+```{r}
+library("tidyverse")
+library("divent")
+# Set the random seed for reproducibility
+set.seed(973)
+# Size and richness
+the_size <- 1E6
+the_richness <- 100
+# Draw the first community
+rcommunity(  1,
+  size = the_size,
+  species_number = the_richness,
+  distribution = "lnorm",
+  sd_lnorm = 1
+) %>%
+  # Give it a name
+  mutate(site = "sigma = 1") %>%
+  # Bind the second community data into the same tibble
+  bind_rows(
+    # Draw the second community    
+    rcommunity(
+      1,
+      size = the_size,
+      species_number = the_richness,
+      distribution = "lnorm",
+      sd_lnorm = 2
+    ) %>%
+      # Give it a name
+      mutate(site = "sigma = 2")
+  ) ->
+  # Store the result
+  comm_lnorm
+# Whittaker plot
+autoplot(comm_lnorm)
+```
+
+> What is the species richness of the observed communities?
+
+> What is the abundance of the rarest species (approximately, as read from the plot) compared to the total number of trees?
+
+> What do we observe for a sample of reasonable size, say 6.25 ha with 600 trees per hectare?
+> Draw the figure.
+> Be careful not to overwrite the `comm_lnorm` variable when reusing the code.
+
+> Plot the diversity profile of the two communities
+
+> Which community is the most diverse?
+> Explain this in relation to the value of $\sigma$.
+
+## Pielou (1972)
+
+*The aim of this final section is to revisit and modernise the results of @pielou1972. The data consist of abundance records for aphids of the genus* Dactynotus *on plants of the genus* Solidago *(Asteraceae), considered as their potential habitats. The diversity of each* Solidago *species is defined as the diversity of the aphid species it hosts.*
+
+|                                    |                                    |
+|------------------------------------|------------------------------------|
+| ![](images/Dactynotus_pieloui.jpg) | ![](images/Solidago_nemoralis.jpg) |
+
+: *Dactynotus pieloui* and *Solidago nemoralis*
+
+### Data
+
+*We will first assess the diversity of aphids in their various habitats.*
+
+*The data are contained in the file `Pielou1972.csv`.*
+
+```{r}
+# Read the file
+read_csv('data/Pielou1972.csv') %>%
+  # Replace missing values with zeros
+  mutate(across(everything(), ~ replace_na(.x, 0))) %>%
+  # Create an abundances object
+  as_abundances() %>%
+  # Set equal weights
+  mutate(weight = 1) ->
+  pielou_1972
+# Display it
+pielou_1972
+```
+
+> How many species of aphids are there?
+
+> How many different plants are there?
+
+*Given the experimental protocol (all species studied are in the data; there are no unobserved species), diversity will always be calculated at the sample level: the argument* `estimator = "naive"` *will be used systematically.*
+
+### Aphid diversity
+
+> Count the number of aphid species on each plant.
+
+> What is the maximum species richness?
+
+> Calculate Simpson's diversity (not entropy).
+
+> Which plant is the most diverse according to Simpson's measure?
+
+> Plot the diversity profiles of all *Solidago* species.
+
+> Which plant appears to be the most diverse, regardless of the order of diversity?
+
+> Check whether the curves intersect for $q>2$.
+
+> Two profiles are flat.
+> Explain why.
+
+> Partition the diversity.
+> Summarise this partitioning in one or a few sentences.
+> Caution: because of a bug in the published version of package divent, you can't use argument `estimator = "naive"` in the `div_part()` function.
+> Partition the asymptotic diversity with its default estimator.
+
+### Niche width
+
+*Moving forward, we will follow Pielou's approach by studying the diversity of habitats occupied by each aphid species. From this point onwards, you can no longer simply apply the course content; instead, you must extend the concepts you are familiar with to a new approach.*
+
+*Given that each* Solidago *constitutes a distinct habitat for an aphid species, the number of habitats occupied serves as a proxy for the size of its niche. A generalist aphid will occupy more habitats (in other words, have a broader niche) than a specialist aphid. The niche breadth of each aphid species is therefore initially defined by the number of different habitats it occupies.*
+
+*The data must be organised differently, with aphid species in rows and habitats in columns, which requires converting it to a data matrix and transposing it. As the code is rather laborious, it is provided below.*
+
+```{r}
+# Read the file
+read_csv('data/Pielou1972.csv') %>%
+  # Replace missing values with zeros
+  mutate(across(everything(), ~ replace_na(.x, 0))) ->
+  pielou_raw
+# Save the names of the Soledagos
+pielou_raw %>%
+  pull(site) ->
+  pielou_habitats
+# Create a matrix
+pielou_raw %>%
+  # Remove the 'site' column
+  select(-site) %>%
+  # Convert to a matrix
+  as.matrix() %>%
+  # Transpose the matrix
+  t() ->
+  pielou_niches.matrix
+# Add the column names
+colnames(pielou_niches.matrix) <- pielou_habitats
+pielou_niches.matrix %>%
+  # Create an abundances object
+  as_abundances() %>%
+  # Set equal weights
+  mutate(weight = 1) ->
+  pielou_niches
+# Display it
+pielou_niches
+```
+
+*The number of habitats occupied by each aphid species can be counted using the usual diversity calculation functions, applied to this unusual dataset:*
+
+> Which aphid species is the most generalist?
+> What proportion of habitats does it occupy?
+
+> Which species is the most specialist?
+
+*The diversity of occupied habitats can take abundance into account.*
+
+> Plot the aphid diversity profiles and establish the link between the actual number of *Soledago* plants and niche width.
+
+> Pielou focuses solely on Shannon entropy in her article, using an archaic form known as the Brillouin formula, which makes the article very difficult to read.
+> @Levins1968 was the first to propose measuring niche width in this way, suggesting two metrics: $-\sum_i{p_i \log(p_i)}$ and $\sum_i{\frac{1}{p_i^2}}$, where $p_i$ is the probability that an aphid is found in habitat $i$.
+> Identify these two metrics.
+
+### Niche overlap
+
+*Pielou wants to assess niche overlap in addition to niche width. The reasoning is clearer using Hill's numbers. If the niches do not overlap at all, there is only one species per habitat, provided, of course, that there are fewer species than habitats. Conversely, if all species are completely generalist, the number of species per habitat equals the total number of species.*
+
+> What measure reflects niche overlap?
+> Give its value for $q = 1$.
+
+# Français
+
+## Estimation du nombre d'espèces
+
+*Vous disposez de trois inventaires de 10 hectares de forêt (environ 5000 arbres) :*
+
+- *A : 100 espèces dont 20 singletons (*$S_1$), 10 doubletons ($S_2$) et 3 tripletons ($S_3$),
+- *B : 80 espèces dont 30 singletons, 20 doubletons et 5 tripletons,*
+- *C : 150 espèces dont 110 singletons, 30 doubletons et 10 tripletons.*
+
+*Rappel des formules des estimateurs, avec les notations du cours :*
+
+- $S_{J1} = S_{>0} + S_1$
+- $S_{J2} = S_{>0} + 2 S_1 - S_2$
+- $S_{J3} = S_{>0} + 3 S_1 - 3 S_2 + S_3$
+
+> Estimez rapidement la richesse asymptotique de la forêt en utilisant les estimateurs jackknife et les règles de @Brose2003.
+
+## Diversité phylogénétique
+
+*La fonction suivante permet de créer un arbre phylogénétique avec 3 espèces. Le paramètre `h` fixe la hauteur à laquelle les espèces A et B se séparent.*
+
+```{r}
+tree_3sp <- function(h) {
+  NewickABC <- paste0("(C:1,(A:", 1 - h, ",B:", 1 - h, "):", h, ");")
+  phyloABC <- ape::read.tree(text = NewickABC)
+  plot(phyloABC, direction = "downwards", srt = 90)
+  axis(2)
+}
+# Make a tree
+tree_3sp(0.5)
+```
+
+> Quelle est la diversité phylogénétique d'ordre 0 (PD de Faith) d'une communauté contenant les trois espèces, dont l'arbre phylogénétique est celui de la figure ?
+
+> Quelle est l'étendue possible des valeurs de `h` ?
+
+> Quel est l'effet de `h` sur la valeur de PD ?
+
+> Ecrivez la valeur de PD en fonction de \`h\`.
+
+> Quel est la richesse (taxonomique, pas phylogénétique) de la communauté ?
+> Expliquez comment $h$ permet de prendre en compte la proximité entre les espèces B et A.
+
+> Si les botanistes sont en désaccord sur la synonymie ou non des espèces B et A et qu'une phylogénie montre que leur distance $h$ est faible, proposez une méthode pour les mettre d'accord.
+
+## Distribution lognormale
+
+*On tire deux distributions aléatoires dans une loi lognormale. Leur taille et leur richesse sont identiques, seul l'écart-type de la distribution varie.*
+
+```{r}
+library("tidyverse")
+library("divent")
+# Set the random seed for reproducibility
+set.seed(973)
+# Size and richness
+the_size <- 1E6
+the_richness <- 100
+# Draw the first community
+rcommunity(
+  1, 
+  size = the_size, 
+  species_number = the_richness, 
+  distribution = "lnorm", 
+  sd_lnorm = 1
+) %>% 
+  # Give it a name
+  mutate(site = "sigma = 1") %>% 
+  # Bind the second community data in the same tibble
+  bind_rows(
+    # Draw the second community
+    rcommunity(
+      1, 
+      size = the_size, 
+      species_number = the_richness, 
+      distribution = "lnorm", 
+      sd_lnorm = 2
+    ) %>% 
+      # Give it a name
+      mutate(site = "sigma = 2")
+  ) -> 
+  # Store the result
+  comm_lnorm
+# Whittaker plot
+autoplot(comm_lnorm)
+```
+
+> Quelle est la richesse des communautés observées ?
+> Quel est l'abondance de l'espèce la plus rare (approximativement, lue sur le graphique) comparativement au nombre d'arbres total ?
+
+> Qu'observe-t-on pour un échantillon de taille raisonnable, disons 6,25ha avec 600 arbres / ha ?
+> Faites la figure.
+> Attention à ne pas détruire la variable `comm_lnorm` en réutilisant le code.
+
+> Tracez le profil de diversité des deux communautés
+
+> Quelle est la communauté la plus diverse ?
+> Faites le lien avec la valeur de $\sigma$.
+
+## Pielou (1972)
+
+*L'objectif de cette dernière partie est de redécouvrir et de moderniser les résultats de @pielou1972. Les données sont des relevés d'abondances de pucerons du genre* Dactynotus *sur des plantes du genre* Solidago *(Asteraceae), considérées comme leurs habitats possibles. La diversité de chacun des* Solidago *est celle des espèces de pucerons qu'il abrite.*
+
+|                                    |                                    |
+|------------------------------------|------------------------------------|
+| ![](images/Dactynotus_pieloui.jpg) | ![](images/Solidago_nemoralis.jpg) |
+
+: *Dactynotus pieloui* et *Solidago nemoralis*
+
+### Données
+
+*Nous allons d'abord évaluer la diversité des pucerons dans leurs différents habitats.*
+
+*Les données sont dans le fichier `Pielou1972.csv`.*
+
+```{r}
+# Read the file
+read_csv("data/Pielou1972.csv") %>% 
+  # Replace missing values by zeros
+  mutate(across(everything(), ~ replace_na(.x, 0))) %>% 
+  # Make an abundances object
+  as_abundances() %>% 
+  # Set equal weights
+  mutate(weight = 1) -> 
+  pielou_1972
+# Show it
+pielou_1972
+```
+
+> Combien y a–t-il d'espèces de pucerons ?
+
+> Combien y a–t-il de plantes différentes ?
+
+*Etant donné le protocole expérimental (toutes les espèces étudiées sont dans les données, il n'y a pas d'espèce non observée), la diversité sera toujours calculée au niveau de l'échantillon: l'argument* `estimator = "naive"` *sera utilisé systématiquement.*
+
+### Diversité des pucerons
+
+> Compter le nombre d'espèces de pucerons sur chaque plante.
+
+> Quelle est la richesse maximale ?
+
+> Calculer la diversité (pas l'entropie) de Simpson.
+
+> Quelle est la plante la plus diverse au sens de Simpson ?
+
+> Tracer les profils de diversité de tous les *Solidago*.
+
+> Quelle est la plante apparemment la plus diverse, quel que soit l'ordre de diversité ?
+
+> Vérifiez si les courbes se croisent pour $q>2$.
+
+> Deux profils sont plats.
+> Expliquez pourquoi.
+
+> Décomposez la diversité.
+> Résumez cette décomposition en une ou quelques phrases.
+> Attention : en raison d'un bug dans la version publiée du package divent, vous ne pouvez pas utiliser l'argument `estimator = "naive"` dans la fonction `div_part()`.
+> Faites la décomposition de la diversité asymptotique avec l'estimateur par défaut.
+
+### Largeur de niches
+
+*Pour la suite, nous allons suivre Pielou en étudiant la diversité des habitats occupés par chaque espèce de puceron. A partir d'ici, vous ne pouvez plus appliquer simplement le contenu du cours, mais vous devez étendre les notions que vous connaissez à une approche nouvelle.*
+
+*En considérant que chaque* Solidago *constitue un habitat distinct pour une espèce de puceron, le nombre d'habitat occupés est un proxy de la taille de sa niche. Un puceron généraliste occupera plus d'habitats (autrement dit, une niche plus large) qu'un puceron spécialiste. La largeur de niche de chaque espèce de puceron est donc définie dans un premier temps par le nombre d'habitats différents qu'il occupe.*
+
+*Les données doivent être organisées différemment avec les espèces de pucerons en ligne et les habitats en colonnes, ce qui nécessite de passer par une matrice de données et de la transposer. Comme le code est un peu laborieux, il est donné ci-dessous.*
+
+```{r}
+# Read the file
+read_csv("data/Pielou1972.csv") %>% 
+  # Replace missing values by zeros
+  mutate(across(everything(), ~ replace_na(.x, 0))) ->
+  pielou_raw
+# Save the names of the Soledagos
+pielou_raw %>% 
+  pull(site) ->
+  pielou_habitats
+# Make a matrix
+pielou_raw %>%
+  # Remove the site
+  select(-site) %>%
+  # Make it a matrix
+  as.matrix() %>% 
+  # Transpose the matrix
+  t() ->
+  pielou_niches.matrix
+# Add the column names
+colnames(pielou_niches.matrix) <- pielou_habitats
+pielou_niches.matrix %>% 
+  # Make an abundances object
+  as_abundances() %>%
+  # Set equal weights
+  mutate(weight = 1) ->
+  pielou_niches
+# Display it
+pielou_niches
+```
+
+*Le nombre d'habitats occupés par chaque espèce de puceron peut être compté avec les fonctions de calcul de la diversité habituelles, appliquées à ce jeu de données inhabituel :*
+
+> Quelle est l'espèce de pucerons la plus généraliste ?
+> Quelle proportion des habitats occupe-t-elle ?
+
+> Quelle est l'espèce la plus spécialiste ?
+
+> Tracez les profils de diversité des pucerons et faites le lien entre le nombre effectif de *Soledago* et la largeur de niche.
+
+> Pielou s'intéresse seulement à l'entropie de Shannon dans son article, sous une forme archaïque appelée formule de Brillouin, ce qui rend l'article très difficile à lire.
+> @Levins1968 avait le premier proposé de mesurer la largeur de niche de cette façon, en proposant deux métriques : $-\sum_i{p_i \log(p_i)}$ et $\sum_i{\frac{1}{p_i^2}}$ où $p_i$ est la probabilité qu'un puceron se trouve dans l'habitat $i$.
+> Identifiez ces deux métriques.
+
+### Chevauchement des niches
+
+*Pielou veut évaluer le chevauchement des niches en plus de leur largeur. Le raisonnement est plus clair avec les nombres de Hill. Si les niches ne se chevauchent pas du tout, on trouve une seule espèce par habitat à condition bien sûr qu'il y ait moins d'espèces que d'habitats. A l'inverse, si toutes les espèces sont totalement généralistes, le nombre d'espèces par habitat est celui des espèces.*
+
+> Quelle est la mesure qui rend compte du chevauchement des niches ?
+> Donnez sa valeur pour q = 1.
